@@ -11,7 +11,9 @@ import MyClubs from "@/pages/MyClubs";
 import Events from "@/pages/Events";
 import AdminClubs from "@/pages/admin/AdminClubs";
 import AdminEvents from "@/pages/admin/AdminEvents";
+import AdminAttendance from "@/pages/admin/AdminAttendance";
 import AdminReports from "@/pages/admin/AdminReports";
+import Profile from "@/pages/Profile";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -19,7 +21,7 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requireAdmin }: { children: React.ReactNode; requireAdmin?: boolean }) {
   const { user, isLoading, isAdmin } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -27,19 +29,19 @@ function ProtectedRoute({ children, requireAdmin }: { children: React.ReactNode;
       </div>
     );
   }
-  
+
   if (!user) return <Navigate to="/login" replace />;
-  
+
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <Layout>{children}</Layout>;
 }
 
 function AppRoutes() {
   const { user, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -47,7 +49,7 @@ function AppRoutes() {
       </div>
     );
   }
-  
+
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
@@ -56,7 +58,9 @@ function AppRoutes() {
       <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
       <Route path="/admin/clubs" element={<ProtectedRoute requireAdmin><AdminClubs /></ProtectedRoute>} />
       <Route path="/admin/events" element={<ProtectedRoute requireAdmin><AdminEvents /></ProtectedRoute>} />
+      <Route path="/admin/attendance" element={<ProtectedRoute requireAdmin><AdminAttendance /></ProtectedRoute>} />
       <Route path="/admin/reports" element={<ProtectedRoute requireAdmin><AdminReports /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

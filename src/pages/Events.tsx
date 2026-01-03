@@ -84,8 +84,9 @@ export default function Events() {
                   <div className="flex items-start justify-between">
                     <Badge variant="outline">{getClubName(event.club_id)}</Badge>
                     {isRegistered && (
-                      <Badge className="bg-green-600">
-                        <Check className="mr-1 h-3 w-3" /> Registered
+                      <Badge className={registration.attended ? "bg-blue-600" : "bg-green-600"}>
+                        <Check className="mr-1 h-3 w-3" />
+                        {registration.attended ? 'Checked In' : 'Registered'}
                       </Badge>
                     )}
                   </div>
@@ -118,8 +119,8 @@ export default function Events() {
                         View Entry Pass
                       </Button>
                     ) : (
-                      <Button 
-                        className="w-full" 
+                      <Button
+                        className="w-full"
                         onClick={() => handleRegister(event.id)}
                         disabled={registering === event.id}
                       >

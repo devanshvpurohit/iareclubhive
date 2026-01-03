@@ -150,15 +150,22 @@ export function useEvents(clubId?: string) {
     return registrations.find((r) => r.event_id === eventId) || null;
   }, [registrations]);
 
-  return { 
-    events, 
-    loading, 
-    createEvent, 
-    registerForEvent, 
-    getMyRegistration, 
-    getEventRegistrations, 
+  return {
+    events,
+    loading,
+    createEvent,
+    registerForEvent,
+    getMyRegistration,
+    getEventRegistrations,
     refreshEvents: loadEvents,
-    refreshRegistrations: loadMyRegistrations
+    refreshRegistrations: loadMyRegistrations,
+    markAttendance: async (registrationId: string) => {
+      const { error } = await supabase
+        .from('event_registrations')
+        .update({ attended: true })
+        .eq('id', registrationId);
+      return !error;
+    }
   };
 }
 

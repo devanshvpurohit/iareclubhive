@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Hexagon, LayoutDashboard, Users, Calendar, Settings, LogOut } from 'lucide-react';
+import { Hexagon, LayoutDashboard, Users, Calendar, Settings, LogOut, User, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const studentLinks = [
@@ -15,6 +15,7 @@ const adminLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/clubs', label: 'Manage Clubs', icon: Users },
   { href: '/admin/events', label: 'Manage Events', icon: Calendar },
+  { href: '/admin/attendance', label: 'Attendance', icon: CheckCircle },
   { href: '/admin/reports', label: 'Reports', icon: Settings },
 ];
 
@@ -76,6 +77,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <p className="text-xs text-muted-foreground capitalize">{isAdmin ? 'Admin' : 'Student'}</p>
             </div>
           </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-muted-foreground"
+            onClick={() => navigate('/profile')}
+          >
+            <User className="h-4 w-4" />
+            Profile
+          </Button>
 
           <Button
             variant="ghost"
