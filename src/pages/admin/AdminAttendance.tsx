@@ -229,52 +229,54 @@ export default function AdminAttendance() {
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="max-h-[500px] overflow-y-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Student Name</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead className="text-center">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {registrations.length === 0 ? (
+                            <div className="relative w-full overflow-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                                                No students registered for this event yet.
-                                            </TableCell>
+                                            <TableHead>Student Name</TableHead>
+                                            <TableHead className="hidden sm:table-cell">Email</TableHead>
+                                            <TableHead className="text-center">Actions</TableHead>
                                         </TableRow>
-                                    ) : (
-                                        registrations.map((reg) => (
-                                            <TableRow key={reg.id}>
-                                                <TableCell className="font-medium">{reg.profiles?.full_name || 'N/A'}</TableCell>
-                                                <TableCell>{reg.profiles?.email || 'N/A'}</TableCell>
-                                                <TableCell className="text-center">
-                                                    {reg.attended ? (
-                                                        <Badge variant="success" className="bg-green-100 text-green-700 hover:bg-green-100 pointer-events-none">
-                                                            <CheckCircle2 className="h-3 w-3 mr-1" /> Attended
-                                                        </Badge>
-                                                    ) : (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            disabled={processingManualId === reg.id}
-                                                            onClick={() => handleManualMark(reg)}
-                                                        >
-                                                            {processingManualId === reg.id ? (
-                                                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                                            ) : (
-                                                                <UserPlus className="h-3 w-3 mr-1" />
-                                                            )}
-                                                            Mark Attended
-                                                        </Button>
-                                                    )}
+                                    </TableHeader>
+                                    <TableBody>
+                                        {registrations.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                                    No students registered for this event yet.
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
+                                        ) : (
+                                            registrations.map((reg) => (
+                                                <TableRow key={reg.id}>
+                                                    <TableCell className="font-medium">{reg.profiles?.full_name || 'N/A'}</TableCell>
+                                                    <TableCell className="hidden sm:table-cell">{reg.profiles?.email || 'N/A'}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        {reg.attended ? (
+                                                            <Badge variant="success" className="bg-green-100 text-green-700 hover:bg-green-100 pointer-events-none">
+                                                                <CheckCircle2 className="h-3 w-3 mr-1" /> Attended
+                                                            </Badge>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                disabled={processingManualId === reg.id}
+                                                                onClick={() => handleManualMark(reg)}
+                                                            >
+                                                                {processingManualId === reg.id ? (
+                                                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                                ) : (
+                                                                    <UserPlus className="h-3 w-3 mr-1" />
+                                                                )}
+                                                                Mark Attended
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

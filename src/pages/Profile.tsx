@@ -85,7 +85,7 @@ export default function Profile() {
                                             <CardDescription className="capitalize">{isAdmin ? 'Administrator' : 'Student Member'}</CardDescription>
                                             {user?.id && (
                                                 <div className="flex flex-col items-center justify-center p-4">
-                                                    <QRCodeSVG value={user.id} size={128} level="H" />
+                                                    <QRCodeSVG value={user.id} className="w-full h-auto max-w-[160px]" level="H" />
                                                     <p className="text-xs text-muted-foreground mt-2">Scan this QR to mark attendance</p>
                                                 </div>
                                             )}                    </CardHeader>

@@ -2,8 +2,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Hexagon, LayoutDashboard, Users, Calendar, Settings, LogOut, User } from 'lucide-react';
+import { Hexagon, LayoutDashboard, Users, Calendar, Settings, LogOut, User, Menu } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState } from 'react';
 
 const studentLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,6 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { profile, isAdmin, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   const links = isAdmin ? adminLinks : studentLinks;
 
@@ -35,7 +37,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-card">
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-card transition-transform duration-300 ease-in-out',
+          'md:translate-x-0',
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
         <div className="flex h-16 items-center gap-2 border-b px-6">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Hexagon className="h-4 w-4 text-primary-foreground" />
@@ -51,6 +59,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={link.href}
                 to={link.href}
+                onClick={() => setSidebarOpen(false)}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   isActive
@@ -81,7 +90,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             variant="ghost"
             size="sm"
             className="w-full justify-start gap-2 text-muted-foreground"
-            onClick={() => navigate('/profile')}
+            onClick={() => {
+              navigate('/profile');
+              setSidebarOpen(false);
+            }}
           >
             <User className="h-4 w-4" />
             Profile
@@ -99,7 +111,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="ml-64 flex-1 p-6">{children}</main>
+      <main className="flex-1 p-6 md:ml-64">
+        <header className="md:hidden flex items-center justify-between mb-4">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!isSidebarOpen)}>
+            <Menu className="h-6 w-6" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <Hexagon className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-semibold">ClubHive</span>
+          </div>
+        </header>
+        {children}
+      </main>
     </div>
   );
 }
