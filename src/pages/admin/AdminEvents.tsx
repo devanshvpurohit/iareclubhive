@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Calendar, MapPin, Users, Plus, Eye, Loader2, Trash2, Edit, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Eye, Loader2, Trash2, Edit, CheckCircle, Image as ImageIcon, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 export default function AdminEvents() {
   const { getAdminClubs, loading: clubsLoading } = useClubs();
-  const { events, createEvent, deleteEvent, updateEvent, getEventRegistrations, refreshEvents, loading: eventsLoading } = useEvents();
+  const { events, createEvent, deleteEvent, updateEvent, uploadEventPoster, getEventRegistrations, refreshEvents, loading: eventsLoading } = useEvents();
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -46,11 +46,13 @@ export default function AdminEvents() {
     }
 
     setCreating(true);
+    let imageUrl = formData.image_url;
+
     const result = await createEvent({
       ...formData,
       capacity: formData.capacity || null,
       description: formData.description || null,
-      image_url: formData.image_url || null,
+      image_url: imageUrl || null,
       is_completed: false,
     });
 
@@ -138,15 +140,49 @@ export default function AdminEvents() {
               </div>
 
               <div className="space-y-2">
-                <Label>Poster Image URL</Label>
-                <div className="relative">
-                  <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://example.com/poster.jpg"
-                  />
+                <Label>Poster Image</Label>
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      placeholder="Image URL"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      id="poster-upload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setCreating(true);
+                          const url = await uploadEventPoster(file);
+                          if (url) {
+                            setFormData({ ...formData, image_url: url });
+                            toast({ title: 'Image uploaded', description: 'Poster uploaded successfully.' });
+                          } else {
+                            toast({ title: 'Upload failed', description: 'Could not upload image.', variant: 'destructive' });
+                          }
+                          setCreating(false);
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => document.getElementById('poster-upload')?.click()}
+                      disabled={creating}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload from Device
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -231,6 +267,7 @@ function EventCard({
   getEventRegistrations: (eventId: string) => Promise<any[]>;
   deleteEvent: (id: string) => Promise<boolean>;
   updateEvent: (id: string, data: Partial<Event>) => Promise<any>;
+  uploadEventPoster: (file: File) => Promise<string | null>;
 }) {
   const [registrationCount, setRegistrationCount] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
@@ -380,14 +417,49 @@ function EventCard({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Poster Image URL</Label>
-                  <div className="relative">
-                    <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pl-9"
-                      value={editFormData.image_url}
-                      onChange={(e) => setEditFormData({ ...editFormData, image_url: e.target.value })}
-                    />
+                  <Label>Poster Image</Label>
+                  <div className="flex flex-col gap-2">
+                    <div className="relative">
+                      <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        value={editFormData.image_url}
+                        onChange={(e) => setEditFormData({ ...editFormData, image_url: e.target.value })}
+                        placeholder="Image URL"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        id={`edit-poster-upload-${event.id}`}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setIsUpdating(true);
+                            const url = await uploadEventPoster(file);
+                            if (url) {
+                              setEditFormData({ ...editFormData, image_url: url });
+                              toast({ title: 'Image uploaded', description: 'New poster uploaded successfully.' });
+                            } else {
+                              toast({ title: 'Upload failed', description: 'Could not upload image.', variant: 'destructive' });
+                            }
+                            setIsUpdating(false);
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => document.getElementById(`edit-poster-upload-${event.id}`)?.click()}
+                        disabled={isUpdating}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload from Device
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

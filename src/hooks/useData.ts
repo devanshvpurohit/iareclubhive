@@ -172,6 +172,27 @@ export function useEvents(clubId?: string) {
     return null;
   }, [loadEvents]);
 
+  const uploadEventPoster = useCallback(async (file: File) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `posters/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('event-posters')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('event-posters')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }, []);
+
   const getMyRegistration = useCallback((eventId: string) => {
     return registrations.find((r) => r.event_id === eventId) || null;
   }, [registrations]);
@@ -182,6 +203,7 @@ export function useEvents(clubId?: string) {
     createEvent,
     deleteEvent,
     updateEvent,
+    uploadEventPoster,
     registerForEvent,
     getMyRegistration,
     getEventRegistrations,
