@@ -156,6 +156,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_completed: boolean
           location: string
           title: string
           updated_at: string
@@ -169,6 +170,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_completed?: boolean
           location: string
           title: string
           updated_at?: string
@@ -182,6 +184,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_completed?: boolean
           location?: string
           title?: string
           updated_at?: string

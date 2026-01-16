@@ -13,7 +13,7 @@ export default function Dashboard() {
 
   const myClubs = isAdmin ? getAdminClubs() : getMyClubs();
   const upcomingEvents = events
-    .filter((e) => new Date(e.date) >= new Date())
+    .filter((e) => !e.is_completed && new Date(e.date) >= new Date())
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 5);
 
@@ -24,7 +24,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {displayName}!</h1>
         <p className="text-muted-foreground">
-          {isAdmin 
+          {isAdmin
             ? 'Manage your clubs and track event performance.'
             : 'Discover events and stay connected with your clubs.'}
         </p>

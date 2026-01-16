@@ -146,6 +146,32 @@ export function useEvents(clubId?: string) {
     return null;
   }, [user, loadMyRegistrations]);
 
+  const deleteEvent = useCallback(async (eventId: string) => {
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId);
+    if (!error) {
+      loadEvents();
+      return true;
+    }
+    return false;
+  }, [loadEvents]);
+
+  const updateEvent = useCallback(async (eventId: string, eventData: Partial<Event>) => {
+    const { data, error } = await supabase
+      .from('events')
+      .update(eventData)
+      .eq('id', eventId)
+      .select()
+      .single();
+    if (!error && data) {
+      loadEvents();
+      return data;
+    }
+    return null;
+  }, [loadEvents]);
+
   const getMyRegistration = useCallback((eventId: string) => {
     return registrations.find((r) => r.event_id === eventId) || null;
   }, [registrations]);
@@ -154,6 +180,8 @@ export function useEvents(clubId?: string) {
     events,
     loading,
     createEvent,
+    deleteEvent,
+    updateEvent,
     registerForEvent,
     getMyRegistration,
     getEventRegistrations,

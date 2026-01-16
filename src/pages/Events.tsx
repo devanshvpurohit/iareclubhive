@@ -20,7 +20,7 @@ export default function Events() {
   const [registering, setRegistering] = useState<string | null>(null);
 
   const upcomingEvents = events
-    .filter((e) => new Date(e.date) >= new Date())
+    .filter((e) => !e.is_completed && new Date(e.date) >= new Date())
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const getClubName = (clubId: string) => {
@@ -60,7 +60,7 @@ export default function Events() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Events</h1>
+        <h1 className="text-3xl font-bold">Upcoming Events</h1>
         <p className="text-muted-foreground">Discover and register for upcoming events</p>
       </div>
 
@@ -79,36 +79,46 @@ export default function Events() {
             const isRegistered = !!registration;
 
             return (
-              <Card key={event.id} className="flex flex-col">
+              <Card key={event.id} className="flex flex-col overflow-hidden">
+                {event.image_url && (
+                  <div className="h-48 w-full relative overflow-hidden">
+                    <img
+                      src={event.image_url}
+                      alt={event.title}
+                      className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
+                    />
+                    {isRegistered && (
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-green-600">
+                          <Check className="mr-1 h-3 w-3" /> Registered
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <Badge variant="outline">{getClubName(event.club_id)}</Badge>
-                    {isRegistered && (
+                    {isRegistered && !event.image_url && (
                       <Badge className="bg-green-600">
                         <Check className="mr-1 h-3 w-3" /> Registered
                       </Badge>
                     )}
                   </div>
-                  <CardTitle className="mt-2">{event.title}</CardTitle>
+                  <CardTitle className="mt-2 line-clamp-1">{event.title}</CardTitle>
                   <CardDescription className="line-clamp-2">{event.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 space-y-3">
+                <CardContent className="flex-1 space-y-3 pt-0">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(event.date), 'EEEE, MMMM d, yyyy')}
+                    {format(new Date(event.date), 'EEEE, MMMM d')}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     {event.location}
                   </div>
-                  {event.capacity && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      Capacity: {event.capacity}
-                    </div>
-                  )}
 
-                  <div className="pt-4">
+                  <div className="pt-4 mt-auto">
                     {isRegistered ? (
                       <Button
                         variant="outline"

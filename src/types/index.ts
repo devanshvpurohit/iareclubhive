@@ -46,6 +46,7 @@ export interface Event {
   location: string;
   capacity: number | null;
   image_url: string | null;
+  is_completed: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;

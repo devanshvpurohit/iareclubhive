@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useClubs, useEvents } from '@/hooks/useData';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, MapPin, Users, Plus, Eye, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Calendar, MapPin, Users, Plus, Eye, Loader2, Trash2, Edit, CheckCircle, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { Event } from '@/types';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function AdminEvents() {
   const { getAdminClubs, loading: clubsLoading } = useClubs();
-  const { events, createEvent, getEventRegistrations, refreshEvents, loading: eventsLoading } = useEvents();
+  const { events, createEvent, deleteEvent, updateEvent, getEventRegistrations, refreshEvents, loading: eventsLoading } = useEvents();
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -27,6 +28,7 @@ export default function AdminEvents() {
     date: '',
     location: '',
     capacity: 50,
+    image_url: '',
   });
 
   const adminClubs = getAdminClubs();
@@ -48,9 +50,10 @@ export default function AdminEvents() {
       ...formData,
       capacity: formData.capacity || null,
       description: formData.description || null,
-      image_url: null,
+      image_url: formData.image_url || null,
+      is_completed: false,
     });
-    
+
     if (result) {
       toast({ title: 'Event created!', description: 'Your event has been created successfully.' });
       setIsCreateOpen(false);
@@ -61,6 +64,7 @@ export default function AdminEvents() {
         date: '',
         location: '',
         capacity: 50,
+        image_url: '',
       });
     } else {
       toast({ title: 'Error', description: 'Could not create event.', variant: 'destructive' });
@@ -134,6 +138,19 @@ export default function AdminEvents() {
               </div>
 
               <div className="space-y-2">
+                <Label>Poster Image URL</Label>
+                <div className="relative">
+                  <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    placeholder="https://example.com/poster.jpg"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Date & Time</Label>
                 <Input
                   type="datetime-local"
@@ -187,7 +204,14 @@ export default function AdminEvents() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {adminEvents.map((event) => (
-            <EventCard key={event.id} event={event} getClubName={getClubName} getEventRegistrations={getEventRegistrations} />
+            <EventCard
+              key={event.id}
+              event={event}
+              getClubName={getClubName}
+              getEventRegistrations={getEventRegistrations}
+              deleteEvent={deleteEvent}
+              updateEvent={updateEvent}
+            />
           ))}
         </div>
       )}
@@ -195,32 +219,106 @@ export default function AdminEvents() {
   );
 }
 
-function EventCard({ 
-  event, 
-  getClubName, 
-  getEventRegistrations 
-}: { 
-  event: Event; 
+function EventCard({
+  event,
+  getClubName,
+  getEventRegistrations,
+  deleteEvent,
+  updateEvent
+}: {
+  event: Event;
   getClubName: (id: string) => string;
   getEventRegistrations: (eventId: string) => Promise<any[]>;
+  deleteEvent: (id: string) => Promise<boolean>;
+  updateEvent: (id: string, data: Partial<Event>) => Promise<any>;
 }) {
   const [registrationCount, setRegistrationCount] = useState(0);
-  const isPast = new Date(event.date) < new Date();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: event.title,
+    description: event.description || '',
+    date: event.date.slice(0, 16),
+    location: event.location,
+    capacity: event.capacity || 50,
+    image_url: event.image_url || '',
+  });
+  const { toast } = useToast();
+
+  const isPast = new Date(event.date) < new Date() || event.is_completed;
 
   useEffect(() => {
     getEventRegistrations(event.id).then((regs) => setRegistrationCount(regs.length));
   }, [event.id, getEventRegistrations]);
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    const success = await deleteEvent(event.id);
+    if (success) {
+      toast({ title: 'Event deleted', description: 'The event has been removed.' });
+    } else {
+      toast({ title: 'Error', description: 'Failed to delete event.', variant: 'destructive' });
+      setIsDeleting(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    setIsUpdating(true);
+    const success = await updateEvent(event.id, {
+      ...editFormData,
+      capacity: editFormData.capacity || null,
+      description: editFormData.description || null,
+      image_url: editFormData.image_url || null,
+    });
+    if (success) {
+      toast({ title: 'Event updated', description: 'Changes saved successfully.' });
+      setIsEditing(false);
+    } else {
+      toast({ title: 'Error', description: 'Failed to update event.', variant: 'destructive' });
+    }
+    setIsUpdating(false);
+  };
+
+  const toggleCompleted = async () => {
+    setIsUpdating(true);
+    const success = await updateEvent(event.id, { is_completed: !event.is_completed });
+    if (success) {
+      toast({
+        title: event.is_completed ? 'Event reopened' : 'Event completed',
+        description: event.is_completed ? 'Event status updated to upcoming.' : 'Event marked as completed.'
+      });
+    }
+    setIsUpdating(false);
+  };
+
   return (
-    <Card className="flex flex-col">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <Badge variant="outline">{getClubName(event.club_id)}</Badge>
-          <Badge variant={isPast ? 'secondary' : 'default'}>
-            {isPast ? 'Completed' : 'Upcoming'}
-          </Badge>
+    <Card className="flex flex-col overflow-hidden h-full">
+      {event.image_url && (
+        <div className="h-48 w-full relative overflow-hidden">
+          <img
+            src={event.image_url}
+            alt={event.title}
+            className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
+          />
+          <div className="absolute top-2 right-2">
+            <Badge variant={event.is_completed ? 'success' : isPast ? 'secondary' : 'default'}>
+              {event.is_completed ? 'Completed' : isPast ? 'Past' : 'Upcoming'}
+            </Badge>
+          </div>
         </div>
-        <CardTitle className="mt-2">{event.title}</CardTitle>
+      )}
+      <CardHeader>
+        {!event.image_url && (
+          <div className="flex items-start justify-between">
+            <Badge variant="outline">{getClubName(event.club_id)}</Badge>
+            <Badge variant={event.is_completed ? 'secondary' : isPast ? 'secondary' : 'default'}>
+              {event.is_completed ? 'Completed' : isPast ? 'Past' : 'Upcoming'}
+            </Badge>
+          </div>
+        )}
+        {event.image_url && <Badge variant="outline" className="w-fit">{getClubName(event.club_id)}</Badge>}
+        <CardTitle className="mt-2 line-clamp-1">{event.title}</CardTitle>
         <CardDescription className="line-clamp-2">{event.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
@@ -237,22 +335,139 @@ function EventCard({
           <span className="font-medium">{registrationCount}</span>
           <span className="text-muted-foreground">/ {event.capacity || '∞'} registered</span>
         </div>
-
-        <div className="pt-4 flex gap-2">
-          <Button asChild variant="outline" className="flex-1">
+      </CardContent>
+      <CardFooter className="flex flex-col gap-2 pt-0">
+        <div className="w-full flex gap-2">
+          <Button asChild variant="outline" size="sm" className="flex-1">
             <Link to={`/admin/reports?event=${event.id}`}>
               <Eye className="mr-2 h-4 w-4" />
-              View Details
+              Details
             </Link>
           </Button>
-          <Button asChild className="flex-1">
+          <Button asChild size="sm" className="flex-1">
             <Link to={`/admin/events/${event.id}/attendance`}>
               <Users className="mr-2 h-4 w-4" />
-              Manage Attendance
+              Attendance
             </Link>
           </Button>
         </div>
-      </CardContent>
+        <div className="w-full flex gap-2">
+          <Dialog open={isEditing} onOpenChange={setIsEditing}>
+            <DialogTrigger asChild>
+              <Button variant="secondary" size="sm" className="flex-1">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Edit Event</DialogTitle>
+                <DialogDescription>Update the event details and poster.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Event Title</Label>
+                  <Input
+                    value={editFormData.title}
+                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={editFormData.description}
+                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Poster Image URL</Label>
+                  <div className="relative">
+                    <ImageIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      value={editFormData.image_url}
+                      onChange={(e) => setEditFormData({ ...editFormData, image_url: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date & Time</Label>
+                    <Input
+                      type="datetime-local"
+                      value={editFormData.date}
+                      onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Location</Label>
+                    <Input
+                      value={editFormData.location}
+                      onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Capacity</Label>
+                  <Input
+                    type="number"
+                    value={editFormData.capacity}
+                    onChange={(e) => setEditFormData({ ...editFormData, capacity: parseInt(e.target.value) || 50 })}
+                  />
+                </div>
+                <Button onClick={handleUpdate} className="w-full" disabled={isUpdating}>
+                  {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button
+            variant={event.is_completed ? "outline" : "outline"}
+            size="sm"
+            className={event.is_completed ? "flex-1 text-primary" : "flex-1"}
+            onClick={toggleCompleted}
+            disabled={isUpdating}
+          >
+            {isUpdating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : event.is_completed ? (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Completed
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4 text-muted-foreground" />
+                Complete
+              </>
+            )}
+          </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="px-3" disabled={isDeleting}>
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the event
+                  "{event.title}" and all its registrations.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete Event
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </CardFooter>
     </Card>
   );
 }
