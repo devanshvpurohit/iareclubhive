@@ -250,5 +250,26 @@ export function useProfiles() {
     return data || [];
   }, []);
 
-  return { getProfile, getProfiles };
+  const uploadAvatar = useCallback(async (file: File, userId: string): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error('Avatar upload error:', uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }, []);
+
+  return { getProfile, getProfiles, uploadAvatar };
 }

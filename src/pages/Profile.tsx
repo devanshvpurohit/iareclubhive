@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useProfiles } from '@/hooks/useData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Mail, Shield, Calendar } from 'lucide-react';
+import { Loader2, User, Mail, Shield, Calendar, Upload, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function Profile() {
     const { profile, user, isAdmin, refreshProfile } = useAuth();
+    const { uploadAvatar } = useProfiles();
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [fullName, setFullName] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [rollNumber, setRollNumber] = useState('');
@@ -26,6 +29,33 @@ export default function Profile() {
             setRollNumber(profile.roll_number || '');
         }
     }, [profile]);
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        setIsUploading(true);
+        try {
+            const url = await uploadAvatar(file, user.id);
+            if (url) {
+                setAvatarUrl(url + '?t=' + Date.now()); // Cache bust
+                toast({
+                    title: 'Avatar uploaded',
+                    description: 'Your profile picture has been updated.',
+                });
+            } else {
+                throw new Error('Upload failed');
+            }
+        } catch (error: any) {
+            toast({
+                title: 'Upload failed',
+                description: error.message || 'Could not upload avatar.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,20 +105,38 @@ export default function Profile() {
                 {/* Profile Card */}
                 <Card className="md:col-span-1 shadow-sm h-fit">
                     <CardHeader className="text-center">
-                        <div className="mx-auto mb-4">
+                        <div className="mx-auto mb-4 relative group">
                             <Avatar className="h-24 w-24 border-2 border-primary/10">
                                 <AvatarImage src={avatarUrl || undefined} alt={displayName} />
                                 <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
                             </Avatar>
+                            <label
+                                htmlFor="avatar-upload"
+                                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                                {isUploading ? (
+                                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                                ) : (
+                                    <Camera className="h-6 w-6 text-white" />
+                                )}
+                            </label>
+                            <input
+                                type="file"
+                                id="avatar-upload"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleAvatarUpload}
+                                disabled={isUploading}
+                            />
                         </div>
-                                            <CardTitle>{displayName}</CardTitle>
-                                            <CardDescription className="capitalize">{isAdmin ? 'Administrator' : 'Student Member'}</CardDescription>
-                                            {user?.id && (
-                                                <div className="flex flex-col items-center justify-center p-4">
-                                                    <QRCodeSVG value={user.id} className="w-full h-auto max-w-[160px]" level="H" />
-                                                    <p className="text-xs text-muted-foreground mt-2">Scan this QR to mark attendance</p>
-                                                </div>
-                                            )}                    </CardHeader>
+                        <CardTitle>{displayName}</CardTitle>
+                        <CardDescription className="capitalize">{isAdmin ? 'Administrator' : 'Student Member'}</CardDescription>
+                        {user?.id && (
+                            <div className="flex flex-col items-center justify-center p-4">
+                                <QRCodeSVG value={user.id} className="w-full h-auto max-w-[160px]" level="H" />
+                                <p className="text-xs text-muted-foreground mt-2">Scan this QR to mark attendance</p>
+                            </div>
+                        )}                    </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <Mail className="h-4 w-4" />
@@ -154,13 +202,32 @@ export default function Profile() {
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="avatar_url">Avatar URL</Label>
-                                    <Input
-                                        id="avatar_url"
-                                        placeholder="https://example.com/avatar.jpg"
-                                        value={avatarUrl}
-                                        onChange={(e) => setAvatarUrl(e.target.value)}
-                                    />
+                                    <Label htmlFor="avatar_upload_form">Profile Picture</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="file"
+                                            id="avatar_upload_form"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleAvatarUpload}
+                                            disabled={isUploading}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => document.getElementById('avatar_upload_form')?.click()}
+                                            disabled={isUploading}
+                                        >
+                                            {isUploading ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Upload className="mr-2 h-4 w-4" />
+                                            )}
+                                            {isUploading ? 'Uploading...' : 'Upload Photo'}
+                                        </Button>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground italic">Or hover over your avatar to change it.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="roll_number">Roll Number</Label>
